@@ -22,6 +22,17 @@ jobs:
         distribution: 'temurin'
         cache: gradle
 
+    - name: Create Env File
+      run: cp .env.example .env
+
+    - name: Decode Debug Keystore
+      run: |
+        if [ -f debug.keystore.base64 ]; then
+          base64 -d debug.keystore.base64 > debug.keystore
+        else
+          echo "debug.keystore.base64 not found!"
+        fi
+
     - name: Grant Execute Permission for Gradlew
       run: chmod +x gradlew
 
