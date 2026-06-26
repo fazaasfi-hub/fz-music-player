@@ -197,11 +197,79 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
     private var mediaPlayer: MediaPlayer? = null
 
     init {
-        // Start completely empty as requested so the user can populate the library themselves
-        _library.value = emptyList()
-        _queue.value = emptyList()
-        _currentTrack.value = null
+        // Load persisted values on startup
+        val savedLibrary = loadLibrary()
+        _library.value = savedLibrary
+        _queue.value = savedLibrary
+        
+        _playlists.value = loadPlaylists()
+        _listeningStats.value = loadListeningStats()
+        
+        _appTheme.value = loadSetting("appTheme", "Follow System")
+        _playerTheme.value = loadSetting("playerTheme", "Modern Glow")
+        _navBarStyle.value = loadSetting("navBarStyle", "Full Width")
+        _carouselStyle.value = loadSetting("carouselStyle", "No Peek")
+        _defaultTab.value = loadSetting("defaultTab", "Search")
+        _keepPlayingAfterClosing.value = loadSetting("keepPlayingAfterClosing", "On")
+        _autoPlayCast.value = loadSetting("autoPlayCast", "Enabled")
+        _crossfade.value = loadSetting("crossfade", "Enabled")
+        _crossfadeDuration.value = loadSetting("crossfadeDuration", "6").toIntOrNull() ?: 6
+        _geminiApiKey.value = loadSetting("geminiApiKey", "")
+
+        if (savedLibrary.isNotEmpty()) {
+            _currentTrack.value = savedLibrary[0]
+        } else {
+            _currentTrack.value = null
+        }
+
         startProgressTracker()
+
+        // Start collecting updates and auto-saving
+        viewModelScope.launch {
+            _library.collect { list ->
+                saveLibrary(list)
+            }
+        }
+        viewModelScope.launch {
+            _playlists.collect { map ->
+                savePlaylists(map)
+            }
+        }
+        viewModelScope.launch {
+            _listeningStats.collect { map ->
+                saveListeningStats(map)
+            }
+        }
+        viewModelScope.launch {
+            _appTheme.collect { saveSetting("appTheme", it) }
+        }
+        viewModelScope.launch {
+            _playerTheme.collect { saveSetting("playerTheme", it) }
+        }
+        viewModelScope.launch {
+            _navBarStyle.collect { saveSetting("navBarStyle", it) }
+        }
+        viewModelScope.launch {
+            _carouselStyle.collect { saveSetting("carouselStyle", it) }
+        }
+        viewModelScope.launch {
+            _defaultTab.collect { saveSetting("defaultTab", it) }
+        }
+        viewModelScope.launch {
+            _keepPlayingAfterClosing.collect { saveSetting("keepPlayingAfterClosing", it) }
+        }
+        viewModelScope.launch {
+            _autoPlayCast.collect { saveSetting("autoPlayCast", it) }
+        }
+        viewModelScope.launch {
+            _crossfade.collect { saveSetting("crossfade", it) }
+        }
+        viewModelScope.launch {
+            _crossfadeDuration.collect { saveSetting("crossfadeDuration", it.toString()) }
+        }
+        viewModelScope.launch {
+            _geminiApiKey.collect { saveSetting("geminiApiKey", it) }
+        }
     }
 
     fun loadDemoTracks() {
@@ -497,5 +565,153 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
                 }
             }
         }
+    }
+
+    private fun trackToJson(track: Track): org.json.JSONObject {
+        val obj = org.json.JSONObject()
+        obj.put("id", track.id)
+        obj.put("title", track.title)
+        obj.put("artist", track.artist)
+        obj.put("album", track.album)
+        obj.put("genre", track.genre)
+        obj.put("artworkUrl", track.artworkUrl)
+        obj.put("durationSeconds", track.durationSeconds)
+        obj.put("uri", track.uri)
+        return obj
+    }
+
+    private fun jsonToTrack(obj: org.json.JSONObject): Track {
+        return Track(
+            id = obj.getString("id"),
+            title = obj.getString("title"),
+            artist = obj.getString("artist"),
+            album = obj.optString("album", "Unknown Album"),
+            genre = obj.optString("genre", "Pop"),
+            artworkUrl = obj.optString("artworkUrl", ""),
+            durationSeconds = obj.getInt("durationSeconds"),
+            uri = obj.optString("uri", null)
+        )
+    }
+
+    private fun saveLibrary(tracks: List<Track>) {
+        try {
+            val array = org.json.JSONArray()
+            for (track in tracks) {
+                array.put(trackToJson(track))
+            }
+            val prefs = getApplication<Application>().getSharedPreferences("FzMusicPrefs", android.content.Context.MODE_PRIVATE)
+            prefs.edit().putString("library", array.toString()).apply()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    private fun loadLibrary(): List<Track> {
+        val prefs = getApplication<Application>().getSharedPreferences("FzMusicPrefs", android.content.Context.MODE_PRIVATE)
+        val jsonStr = prefs.getString("library", null) ?: return emptyList()
+        val list = mutableListOf<Track>()
+        try {
+            val array = org.json.JSONArray(jsonStr)
+            for (i in 0 until array.length()) {
+                list.add(jsonToTrack(array.getJSONObject(i)))
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        return list
+    }
+
+    private fun savePlaylists(playlistsMap: Map<String, List<Track>>) {
+        try {
+            val obj = org.json.JSONObject()
+            for ((name, tracks) in playlistsMap) {
+                val array = org.json.JSONArray()
+                for (track in tracks) {
+                    array.put(trackToJson(track))
+                }
+                obj.put(name, array)
+            }
+            val prefs = getApplication<Application>().getSharedPreferences("FzMusicPrefs", android.content.Context.MODE_PRIVATE)
+            prefs.edit().putString("playlists", obj.toString()).apply()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    private fun loadPlaylists(): Map<String, List<Track>> {
+        val prefs = getApplication<Application>().getSharedPreferences("FzMusicPrefs", android.content.Context.MODE_PRIVATE)
+        val jsonStr = prefs.getString("playlists", null)
+        if (jsonStr == null) {
+            return mapOf(
+                "Favorites" to emptyList(),
+                "Workout" to emptyList(),
+                "Chill" to emptyList()
+            )
+        }
+        val map = mutableMapOf<String, List<Track>>()
+        try {
+            val obj = org.json.JSONObject(jsonStr)
+            val keys = obj.keys()
+            while (keys.hasNext()) {
+                val name = keys.next()
+                val array = obj.getJSONArray(name)
+                val list = mutableListOf<Track>()
+                for (i in 0 until array.length()) {
+                    list.add(jsonToTrack(array.getJSONObject(i)))
+                }
+                map[name] = list
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        return map
+    }
+
+    private fun saveListeningStats(stats: Map<String, Float>) {
+        try {
+            val obj = org.json.JSONObject()
+            for ((day, value) in stats) {
+                obj.put(day, value.toDouble())
+            }
+            val prefs = getApplication<Application>().getSharedPreferences("FzMusicPrefs", android.content.Context.MODE_PRIVATE)
+            prefs.edit().putString("listeningStats", obj.toString()).apply()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    private fun loadListeningStats(): Map<String, Float> {
+        val prefs = getApplication<Application>().getSharedPreferences("FzMusicPrefs", android.content.Context.MODE_PRIVATE)
+        val jsonStr = prefs.getString("listeningStats", null) ?: return mapOf(
+            "Mon" to 1.4f,
+            "Tue" to 2.8f,
+            "Wed" to 1.9f,
+            "Thu" to 3.5f,
+            "Fri" to 2.2f,
+            "Sat" to 0.8f,
+            "Sun" to 1.5f
+        )
+        val map = mutableMapOf<String, Float>()
+        try {
+            val obj = org.json.JSONObject(jsonStr)
+            val keys = obj.keys()
+            while (keys.hasNext()) {
+                val day = keys.next()
+                map[day] = obj.getDouble(day).toFloat()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        return map
+    }
+
+    private fun saveSetting(key: String, value: String) {
+        val prefs = getApplication<Application>().getSharedPreferences("FzMusicPrefs", android.content.Context.MODE_PRIVATE)
+        prefs.edit().putString(key, value).apply()
+    }
+
+    private fun loadSetting(key: String, defaultValue: String): String {
+        val prefs = getApplication<Application>().getSharedPreferences("FzMusicPrefs", android.content.Context.MODE_PRIVATE)
+        return prefs.getString(key, defaultValue) ?: defaultValue
     }
 }
