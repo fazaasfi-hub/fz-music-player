@@ -155,11 +155,7 @@ fun AppNavigation(viewModel: MusicViewModel) {
             }
             
             if (!isPlayerScreen && currentTrack != null) {
-                val playerPadding = when (navBarStyle) {
-                    "Floating Rounded" -> 88.dp
-                    "Compact" -> 88.dp
-                    else -> 8.dp
-                }
+                val playerPadding = 8.dp
                 FloatingPlayer(
                     track = currentTrack,
                     isPlaying = isPlaying,

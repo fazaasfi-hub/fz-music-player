@@ -28,6 +28,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.example.model.Track
+import com.example.model.displayArtist
+import com.example.model.displayTitle
 import com.example.ui.theme.NeonGreen
 
 @Composable
@@ -79,7 +81,7 @@ fun TrackListItem(
         
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = track.title,
+                text = track.displayTitle,
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Bold,
                 color = if (isPlaying) NeonGreen else MaterialTheme.colorScheme.onBackground,
@@ -87,7 +89,7 @@ fun TrackListItem(
                 overflow = TextOverflow.Ellipsis
             )
             Text(
-                text = track.artist,
+                text = track.displayArtist,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,

@@ -27,6 +27,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.model.Track
+import com.example.model.displayArtist
+import com.example.model.displayTitle
 import com.example.viewmodel.MusicViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -409,7 +411,7 @@ fun StatTrackItem(track: Track, statText: String, onClick: () -> Unit) {
         
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = track.title,
+                text = track.displayTitle,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onBackground,
@@ -417,7 +419,7 @@ fun StatTrackItem(track: Track, statText: String, onClick: () -> Unit) {
                 overflow = TextOverflow.Ellipsis
             )
             Text(
-                text = track.artist,
+                text = track.displayArtist,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
@@ -513,7 +515,7 @@ fun SquareTrackCard(track: Track, carouselStyle: String = "No Peek", onClick: ()
         Spacer(modifier = Modifier.height(8.dp))
         
         Text(
-            text = track.title,
+            text = track.displayTitle,
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onBackground,
@@ -522,7 +524,7 @@ fun SquareTrackCard(track: Track, carouselStyle: String = "No Peek", onClick: ()
             modifier = Modifier.fillMaxWidth()
         )
         Text(
-            text = track.artist,
+            text = track.displayArtist,
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,

@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -22,6 +23,8 @@ import android.widget.Toast
 import androidx.compose.animation.core.*
 import coil.compose.AsyncImage
 import com.example.components.MovingText
+import com.example.model.displayArtist
+import com.example.model.displayTitle
 import com.example.ui.theme.NeonGreen
 import com.example.ui.theme.NeonPurple
 import com.example.viewmodel.MusicViewModel
@@ -39,6 +42,20 @@ fun PlayerScreen(
     val isRepeat by viewModel.isRepeat.collectAsState()
 
     if (currentTrack == null) return
+
+    var currentRotation by remember { mutableStateOf(0f) }
+    LaunchedEffect(isPlaying) {
+        if (isPlaying) {
+            var lastTime = System.currentTimeMillis()
+            while (isPlaying) {
+                val now = System.currentTimeMillis()
+                val diff = now - lastTime
+                lastTime = now
+                currentRotation = (currentRotation + (diff * 0.03f)) % 360f
+                kotlinx.coroutines.delay(16)
+            }
+        }
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         // Blurred Background
@@ -157,10 +174,6 @@ fun PlayerScreen(
                         tint = if (connectedCastDevice != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground
                     )
                 }
-                
-                IconButton(onClick = { /* TODO */ }) {
-                    Icon(imageVector = Icons.Default.MoreVert, contentDescription = "Options")
-                }
             }
             
             if (connectedCastDevice != null) {
@@ -192,15 +205,48 @@ fun PlayerScreen(
 
             Spacer(modifier = Modifier.weight(1f))
 
-            // Large Artwork
-            AsyncImage(
-                model = currentTrack?.artworkUrl,
-                contentDescription = "Artwork",
-                contentScale = ContentScale.Crop,
+            // Vinyl Record Styled Rotating Artwork
+            Box(
+                contentAlignment = Alignment.Center,
                 modifier = Modifier
                     .size(300.dp)
-                    .clip(RoundedCornerShape(24.dp))
-            )
+            ) {
+                // Vinyl Disk Outer Ring
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(CircleShape)
+                        .background(Color(0xFF1C1C1E))
+                        .graphicsLayer { rotationZ = currentRotation }
+                ) {
+                    // Subtle vinyl groove details
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize(0.95f)
+                            .align(Alignment.Center)
+                            .clip(CircleShape)
+                            .background(Color.Black)
+                    )
+                    
+                    AsyncImage(
+                        model = currentTrack?.artworkUrl,
+                        contentDescription = "Artwork",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .fillMaxSize(0.80f)
+                            .align(Alignment.Center)
+                            .clip(CircleShape)
+                    )
+                }
+                
+                // Center spindle hole
+                Box(
+                    modifier = Modifier
+                        .size(24.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFF121212))
+                )
+            }
 
             Spacer(modifier = Modifier.height(32.dp))
 
@@ -211,12 +257,12 @@ fun PlayerScreen(
                     .padding(horizontal = 32.dp)
             ) {
                 MovingText(
-                    text = currentTrack?.title ?: "",
+                    text = currentTrack?.displayTitle ?: "",
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = currentTrack?.artist ?: "",
+                    text = currentTrack?.displayArtist ?: "",
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -300,21 +346,21 @@ fun PlayerScreen(
 @Composable
 fun MusicVisualizer(isPlaying: Boolean, modifier: Modifier = Modifier) {
     val barCount = 18
-    val infiniteTransition = rememberInfiniteTransition(label = "visualizer")
+    val targetHeights = remember { mutableStateListOf<Float>().apply { repeat(barCount) { add(0.15f) } } }
     
-    // Create an animated height factor for each frequency bar
-    val heights = (0 until barCount).map { index ->
-        val duration = remember { (450..950).random() }
-        val delay = remember { (0..250).random() }
-        infiniteTransition.animateFloat(
-            initialValue = 0.15f,
-            targetValue = if (isPlaying) 0.95f else 0.15f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(duration, delayMillis = delay, easing = FastOutSlowInEasing),
-                repeatMode = RepeatMode.Reverse
-            ),
-            label = "bar_$index"
-        )
+    LaunchedEffect(isPlaying) {
+        if (isPlaying) {
+            while (true) {
+                for (i in 0 until barCount) {
+                    targetHeights[i] = (25..95).random() / 100f
+                }
+                kotlinx.coroutines.delay(100)
+            }
+        } else {
+            for (i in 0 until barCount) {
+                targetHeights[i] = 0.15f
+            }
+        }
     }
 
     Row(
@@ -325,12 +371,20 @@ fun MusicVisualizer(isPlaying: Boolean, modifier: Modifier = Modifier) {
         horizontalArrangement = Arrangement.spacedBy(5.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        heights.forEach { heightState ->
-            val heightFraction = heightState.value
+        targetHeights.forEach { target ->
+            val animatedHeight by animateFloatAsState(
+                targetValue = target,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioLowBouncy,
+                    stiffness = Spring.StiffnessLow
+                ),
+                label = "visualizer_bar"
+            )
+            
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .fillMaxHeight(heightFraction)
+                    .fillMaxHeight(animatedHeight)
                     .clip(RoundedCornerShape(3.dp))
                     .background(
                         Brush.verticalGradient(

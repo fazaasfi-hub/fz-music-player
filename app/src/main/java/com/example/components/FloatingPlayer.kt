@@ -29,6 +29,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.example.model.Track
+import com.example.model.displayArtist
+import com.example.model.displayTitle
 
 @Composable
 fun FloatingPlayer(
@@ -128,7 +130,7 @@ fun FloatingPlayer(
             
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = track.title,
+                    text = track.displayTitle,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onBackground,
@@ -136,7 +138,7 @@ fun FloatingPlayer(
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = track.artist,
+                    text = track.displayArtist,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
