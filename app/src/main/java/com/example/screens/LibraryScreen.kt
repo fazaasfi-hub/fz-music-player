@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material.icons.filled.Sort
@@ -22,6 +23,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.components.TrackListItem
+import com.example.model.Track
+import com.example.model.displayTitle
 import com.example.viewmodel.MusicViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -33,6 +36,157 @@ fun LibraryScreen(viewModel: MusicViewModel, onNavigateToSettings: () -> Unit) {
 
     var selectedTab by remember { mutableStateOf("SONGS") }
     val tabs = listOf("SONGS", "ALBUMS", "ARTIST", "PLAYLISTS")
+
+    var trackToDelete by remember { mutableStateOf<Track?>(null) }
+    var trackToRemoveFromPlaylist by remember { mutableStateOf<Pair<String, Track>?>(null) }
+
+    if (trackToRemoveFromPlaylist != null) {
+        AlertDialog(
+            onDismissRequest = { trackToRemoveFromPlaylist = null },
+            shape = RoundedCornerShape(28.dp),
+            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(36.dp)
+                )
+            },
+            title = {
+                Text(
+                    text = "Keluarkan dari Playlist?",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            },
+            text = {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "Apakah Anda yakin ingin mengeluarkan \"${trackToRemoveFromPlaylist?.second?.displayTitle}\" dari playlist \"${trackToRemoveFromPlaylist?.first}\"?",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = "Lagu ini tetap tersimpan di HP Anda dan hanya dihapus dari daftar playlist ini.",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        trackToRemoveFromPlaylist?.let { (playlistName, track) ->
+                            viewModel.removeTrackFromPlaylist(playlistName, track)
+                        }
+                        trackToRemoveFromPlaylist = null
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    ),
+                    shape = RoundedCornerShape(20.dp),
+                    modifier = Modifier.padding(horizontal = 4.dp)
+                ) {
+                    Text("Keluarkan", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                OutlinedButton(
+                    onClick = { trackToRemoveFromPlaylist = null },
+                    shape = RoundedCornerShape(20.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    ),
+                    modifier = Modifier.padding(horizontal = 4.dp)
+                ) {
+                    Text("Batal")
+                }
+            }
+        )
+    }
+
+    if (trackToDelete != null) {
+        AlertDialog(
+            onDismissRequest = { trackToDelete = null },
+            shape = RoundedCornerShape(28.dp),
+            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.size(36.dp)
+                )
+            },
+            title = {
+                Text(
+                    text = "Hapus Lagu?",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            },
+            text = {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "Apakah Anda yakin ingin menghapus \"${trackToDelete?.displayTitle}\"?",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = "Lagu ini juga akan dihapus secara permanen dari penyimpanan HP Anda. Tindakan ini tidak dapat dibatalkan.",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.error,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        trackToDelete?.let { viewModel.deleteTrack(it) }
+                        trackToDelete = null
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                        contentColor = MaterialTheme.colorScheme.onError
+                    ),
+                    shape = RoundedCornerShape(20.dp),
+                    modifier = Modifier.padding(horizontal = 4.dp)
+                ) {
+                    Text("Hapus", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                OutlinedButton(
+                    onClick = { trackToDelete = null },
+                    shape = RoundedCornerShape(20.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    ),
+                    modifier = Modifier.padding(horizontal = 4.dp)
+                ) {
+                    Text("Batal")
+                }
+            }
+        )
+    }
 
     Column(
         modifier = Modifier
@@ -154,6 +308,7 @@ fun LibraryScreen(viewModel: MusicViewModel, onNavigateToSettings: () -> Unit) {
                             onClick = { viewModel.playTrack(track) },
                             playlists = playlistNames,
                             onAddToPlaylist = { playlistName -> viewModel.addTrackToPlaylist(playlistName, track) },
+                            onDeleteTrack = { trackToDelete = it },
                             modifier = Modifier
                                 .clip(RoundedCornerShape(16.dp))
                                 .background(MaterialTheme.colorScheme.surfaceVariant)
@@ -194,6 +349,7 @@ fun LibraryScreen(viewModel: MusicViewModel, onNavigateToSettings: () -> Unit) {
                                     onClick = { viewModel.playTrack(track) },
                                     playlists = playlistNames,
                                     onAddToPlaylist = { playlistName -> viewModel.addTrackToPlaylist(playlistName, track) },
+                                    onDeleteTrack = { trackToDelete = it },
                                     modifier = Modifier
                                         .padding(start = 16.dp)
                                         .clip(RoundedCornerShape(16.dp))
@@ -236,6 +392,7 @@ fun LibraryScreen(viewModel: MusicViewModel, onNavigateToSettings: () -> Unit) {
                                     onClick = { viewModel.playTrack(track) },
                                     playlists = playlistNames,
                                     onAddToPlaylist = { playlistName -> viewModel.addTrackToPlaylist(playlistName, track) },
+                                    onDeleteTrack = { trackToDelete = it },
                                     modifier = Modifier
                                         .padding(start = 16.dp)
                                         .clip(RoundedCornerShape(16.dp))
@@ -342,6 +499,7 @@ fun LibraryScreen(viewModel: MusicViewModel, onNavigateToSettings: () -> Unit) {
                                         onClick = { viewModel.playTrack(track) },
                                         playlists = playlistNames,
                                         onAddToPlaylist = { playlistName -> viewModel.addTrackToPlaylist(playlistName, track) },
+                                        onRemoveFromPlaylist = { trackToRemoveFromPlaylist = Pair(playlist, it) },
                                         modifier = Modifier
                                             .padding(start = 16.dp)
                                             .clip(RoundedCornerShape(16.dp))

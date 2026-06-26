@@ -2,6 +2,8 @@ package com.example.navigation
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LibraryMusic
@@ -97,6 +99,9 @@ fun AppNavigation(viewModel: MusicViewModel) {
                                 label = { Text(title) },
                                 selected = currentDestination?.hierarchy?.any { it.route == route } == true,
                                 onClick = {
+                                    if (currentRoute == "settings") {
+                                        navController.popBackStack()
+                                    }
                                     navController.navigate(route) {
                                         popUpTo(navController.graph.findStartDestination().id) {
                                             saveState = true
@@ -127,7 +132,31 @@ fun AppNavigation(viewModel: MusicViewModel) {
                 NavHost(
                     navController = navController,
                     startDestination = startDest,
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.fillMaxSize(),
+                    enterTransition = {
+                        slideInHorizontally(
+                            initialOffsetX = { it / 3 },
+                            animationSpec = tween(350, easing = FastOutSlowInEasing)
+                        ) + fadeIn(animationSpec = tween(350, easing = FastOutSlowInEasing))
+                    },
+                    exitTransition = {
+                        slideOutHorizontally(
+                            targetOffsetX = { -it / 3 },
+                            animationSpec = tween(350, easing = FastOutSlowInEasing)
+                        ) + fadeOut(animationSpec = tween(350, easing = FastOutSlowInEasing))
+                    },
+                    popEnterTransition = {
+                        slideInHorizontally(
+                            initialOffsetX = { -it / 3 },
+                            animationSpec = tween(350, easing = FastOutSlowInEasing)
+                        ) + fadeIn(animationSpec = tween(350, easing = FastOutSlowInEasing))
+                    },
+                    popExitTransition = {
+                        slideOutHorizontally(
+                            targetOffsetX = { it / 3 },
+                            animationSpec = tween(350, easing = FastOutSlowInEasing)
+                        ) + fadeOut(animationSpec = tween(350, easing = FastOutSlowInEasing))
+                    }
                 ) {
                     composable("home") { 
                         HomeScreen(

@@ -39,6 +39,8 @@ fun TrackListItem(
     onClick: () -> Unit,
     playlists: List<String> = emptyList(),
     onAddToPlaylist: ((String) -> Unit)? = null,
+    onDeleteTrack: ((Track) -> Unit)? = null,
+    onRemoveFromPlaylist: ((Track) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
@@ -136,6 +138,46 @@ fun TrackListItem(
                     DropdownMenuItem(
                         text = { Text("No playlists available") },
                         onClick = { menuExpanded = false }
+                    )
+                }
+
+                if (onRemoveFromPlaylist != null) {
+                    androidx.compose.material3.HorizontalDivider(
+                        modifier = Modifier.padding(vertical = 4.dp),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f)
+                    )
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                text = "Remove from Playlist",
+                                color = MaterialTheme.colorScheme.error,
+                                fontWeight = FontWeight.Bold
+                            )
+                        },
+                        onClick = {
+                            onRemoveFromPlaylist(track)
+                            menuExpanded = false
+                        }
+                    )
+                }
+
+                if (onDeleteTrack != null) {
+                    androidx.compose.material3.HorizontalDivider(
+                        modifier = Modifier.padding(vertical = 4.dp),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f)
+                    )
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                text = "Delete Song",
+                                color = MaterialTheme.colorScheme.error,
+                                fontWeight = FontWeight.Bold
+                            )
+                        },
+                        onClick = {
+                            onDeleteTrack(track)
+                            menuExpanded = false
+                        }
                     )
                 }
             }

@@ -421,6 +421,40 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
         _progress.value = 0f
         track.uri?.let { playTrackUri(it) }
     }
+
+    fun deleteTrack(track: Track) {
+        viewModelScope.launch {
+            // Stop playback if current
+            if (_currentTrack.value?.id == track.id) {
+                mediaPlayer?.stop()
+                _isPlaying.value = false
+                _progress.value = 0f
+                _currentTrack.value = null
+            }
+            
+            // Remove from local/internal lists first
+            _library.value = _library.value.filter { it.id != track.id }
+            _queue.value = _queue.value.filter { it.id != track.id }
+            
+            // Remove from playlists
+            val updatedPlaylists = _playlists.value.mapValues { (_, tracks) ->
+                tracks.filter { it.id != track.id }
+            }
+            _playlists.value = updatedPlaylists
+            
+            // Attempt to delete from external device storage if it's a real media file
+            track.uri?.let { uriStr ->
+                if (uriStr.startsWith("content://") || uriStr.startsWith("file://")) {
+                    try {
+                        val fileUri = Uri.parse(uriStr)
+                        getApplication<Application>().contentResolver.delete(fileUri, null, null)
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+            }
+        }
+    }
     
     fun seekTo(fraction: Float) {
         _progress.value = fraction
