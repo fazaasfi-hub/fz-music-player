@@ -1,0 +1,6 @@
+{
+  "name": "fz music",
+  "description": "A high-end local music player with a dark theme and neon accents.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
